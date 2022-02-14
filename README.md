@@ -102,6 +102,7 @@ The components of the GUI (above) are as follows:
 
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/govtech-csg/PaddingOracleHunter/issues)
 
-If you have any recommendations that you think could improve the tool, we welcome you to contribute. Together we can make Padding Oracle Hunter more useful to the community.
+ * If you find bugs, kindly log us an [issue ticket](https://github.com/govtech-csg/PaddingOracleHunter/issues) to report them. Do ensure that the bug has not already been reported by searching on GitHub under Issues.
+ * If you have any recommendations that you think could improve the tool, we welcome you to contribute. Together we can make Padding Oracle Hunter more useful to the community.
 ## Submitting changes
 Please send a [GitHub Pull Request to us](https://github.com/govtech-csg/PaddingOracleHunter/pull/new/master) with a clear list of what you have done and the potential impact to the tool if there is any.
