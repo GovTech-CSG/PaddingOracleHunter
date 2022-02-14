@@ -51,7 +51,7 @@ def index():
 def TestAesPKCS7():    
     plaintext = Aes_decrypt(binascii.unhexlify(request.form.get("ciphertext")))
     if plaintext is None:
-        return "Invalid Padding"    
+        return "Decryption Failed"    
     else:
         try:
             data = json.loads(plaintext)
@@ -66,7 +66,10 @@ def TestAesPKCS7():
 @app.route("/TestRsaPKCS1_5", methods=["POST"])
 def TestRsaPKCS1_5():    
     plaintext = Rsa_decrypt(binascii.unhexlify(request.form.get("ciphertext")))
-    if plaintext is None:
-        return "Invalid Padding"    
+    if plaintext == b'L3t$_@tt@ck_Th3_PjDD!':
+        return "Success"
+    elif plaintext is None:
+        return "Decryption Failed"    
     else:
-        return "Success"    
+        return "Wrong Message"
+
