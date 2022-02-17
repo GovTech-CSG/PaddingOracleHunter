@@ -79,12 +79,8 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
     def ServiceRequest_PKCS7(self, encrypted_string):        
         try:
             # Convert the payload back to the original format from hex
-            payload = self.ConvertFromHexToFormatPKCS(encrypted_string, self.gPayloadFormatPKCS7)
+            payload = self.ConvertFromHexToPayloadFormat(encrypted_string, self.gPayloadFormatPKCS7, self.gIsPayloadUrlEncodedPKCS7)
             if payload != None:
-                # Url Encode the payload if urlencoded checkbox is checked
-                if(self.gIsPayloadUrlEncodedPKCS7):                
-                    payload = self._helpers.urlEncode(payload)
-
                 # Replace the #PAYLOAD# with the actual payload
                 newHttpRequest = self.gHttpRequestStringPKCS7.replace("#PAYLOAD#", payload)            
 
@@ -176,11 +172,11 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
 
                 # Retrive the payload for invalid padding 
                 invalidpad_payload = key_list[val_list.index(invalidPadRes)]
-                invalidpad_payload = self.ConvertFromHexToFormatPKCS(invalidpad_payload, self.gPayloadFormatPKCS7)
+                invalidpad_payload = self.ConvertFromHexToPayloadFormat(invalidpad_payload, self.gPayloadFormatPKCS7, self.gIsPayloadUrlEncodedPKCS7)
                 
                 # Retrive the payload for valid padding 
                 validpad_payload = key_list[val_list.index(validPadRes)]
-                validpad_payload = self.ConvertFromHexToFormatPKCS(validpad_payload, self.gPayloadFormatPKCS7)                
+                validpad_payload = self.ConvertFromHexToPayloadFormat(validpad_payload, self.gPayloadFormatPKCS7, self.gIsPayloadUrlEncodedPKCS7)                
                 
 
                 # Display the invalid padding response
@@ -310,11 +306,9 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
             self.__jProgressBarPKCS7.setValue(progress)
         
         # return the encrypted payload into the desired format
-        ciphertext = self.ConvertFromHexToFormatPKCS(ciphertext, self.gPayloadFormatPKCS7)
-        if(ciphertext!=None):
-            if(self.gIsPayloadUrlEncodedPKCS7):
-                ciphertext = self._helpers.urlEncode(ciphertext)
-            
+        ciphertext = self.ConvertFromHexToPayloadFormat(ciphertext, self.gPayloadFormatPKCS7, self.gIsPayloadUrlEncodedPKCS7)
+
+        if(ciphertext!=None):            
             # set progress bar to complete
             self.__jProgressBarPKCS7.setString("Done")
 
@@ -688,14 +682,13 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
         self.gSelectedPayloadPKCS7 = payload        
 
         if(payload!=None):
-            # Check whether the payload is url encoded. If yes, url decode the payload            
+            # Check whether the payload is url encoded.
             if self.__jCheckBoxUrlEncodedPKCS7.isSelected():
                 self.gIsPayloadUrlEncodedPKCS7 = True
-                payload = self._helpers.urlDecode(payload)            
-            
+
             try:
                 # Get the payload format and convert it to hex
-                payload = self.ConverToHexFromFormatPKCS(payload, self.__jComboBoxFormatPKCS7.getSelectedItem())
+                payload = self.ConverToHexFromPayloadFormat(payload, self.__jComboBoxFormatPKCS7.getSelectedItem(), self.gIsPayloadUrlEncodedPKCS7)
 
                 if(payload!=None):                    
                     # validate whether the payload is hex
@@ -966,14 +959,10 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
     def ServiceRequest_PKCS15(self, ciphertext):
         try:
             # Convert the payload back to the original format from hex
-            payload = self.ConvertFromHexToFormatPKCS(ciphertext, self.gPayloadFormatPKCS15)
+            payload = self.ConvertFromHexToPayloadFormat(ciphertext, self.gPayloadFormatPKCS15, self.gIsPayloadUrlEncodedPKCS15)
             
             if(payload!=None):
-                # Check whether the payload required url encoding            
-                if(self.gIsPayloadUrlEncodedPKCS15):
-                    # Url Encode the payload
-                    payload = self._helpers.urlEncode(payload)                        
-                
+
                 # Replaced the request with payload            
                 newHttpRequest = self.gHttpRequestStringPKCS15.replace("#PAYLOAD#", payload)            
                     
@@ -1161,13 +1150,13 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
 
             # Display invalid padding response
             self.DisplayOutput_PKCS15("**** Invalid Padding ****\n")
-            payload = self.ConvertFromHexToFormatPKCS(hexlify(self.LongToBytes_PKCS15(testInvalidPadCipher)).decode(),self.gPayloadFormatPKCS15)
+            payload = self.ConvertFromHexToPayloadFormat(hexlify(self.LongToBytes_PKCS15(testInvalidPadCipher)).decode(),self.gPayloadFormatPKCS15, self.gIsPayloadUrlEncodedPKCS15)
             self.DisplayOutput_PKCS15("Payload:\n{}\n".format(payload))
             self.DisplayOutput_PKCS15("Response:\n{}\n\n".format(unhexlify(hexlify(testInvalidPadResponse))))            
 
             # Display valid padding response
             self.DisplayOutput_PKCS15("**** Valid Padding ****\n")
-            payload = self.ConvertFromHexToFormatPKCS(hexlify(self.LongToBytes_PKCS15(testValidPadCipher)).decode(),self.gPayloadFormatPKCS15)
+            payload = self.ConvertFromHexToPayloadFormat(hexlify(self.LongToBytes_PKCS15(testValidPadCipher)).decode(),self.gPayloadFormatPKCS15, self.gIsPayloadUrlEncodedPKCS15)
             self.DisplayOutput_PKCS15("Payload:\n{}\n".format(payload))
             self.DisplayOutput_PKCS15("Response:\n{}\n\n".format(unhexlify(hexlify(testValidPadResponse))))
 
@@ -1275,14 +1264,13 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
         self.gSelectedPayloadPKCS15 = payload        
 
         if(payload!=None):
-            # Check whether the payload is url encoded. If yes, url decode the payload            
+            # Check whether the payload is url encoded.
             if self.__jCheckBoxUrlEncodedPKCS15.isSelected():
-                self.gIsPayloadUrlEncodedPKCS15 = True
-                payload = self._helpers.urlDecode(payload)    
+                self.gIsPayloadUrlEncodedPKCS15 = True                    
             
             # Get the payload format and convert it to hex
             try:
-                payload = self.ConverToHexFromFormatPKCS(payload, self.__jComboBoxFormatPKCS15.getSelectedItem())
+                payload = self.ConverToHexFromPayloadFormat(payload, self.__jComboBoxFormatPKCS15.getSelectedItem(), self.gIsPayloadUrlEncodedPKCS15)
                 if payload != None:    
                     # validate the payload is hex
                     unhexlify(payload.encode())
@@ -1344,7 +1332,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
             self.__jCheckBoxUrlEncodedPKCS15.setEnabled(True)
 
 # *************************************** Common Function ***************************************
-    def ConvertFromHexToFormatPKCS(self, payload, format):
+    def ConvertFromHexToPayloadFormat(self, payload, format, urlEncoded):
         try:
             # default format is hex           
             if format=="Base64":
@@ -1354,14 +1342,21 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
             elif format=="Decimal":                    
                 # convert the hex encrypted_string to decimal             
                 payload = str(int(payload,16))
+            
+            # Url Encode the payload if urlencoded checkbox is checked
+            if(urlEncoded):                
+                payload = self._helpers.urlEncode(payload)
             return payload
         except Exception as e:                
             JOptionPane.showMessageDialog(self._jPaddingOracleTab, e, "Exception", JOptionPane.ERROR_MESSAGE)
             return None 
 
-
-    def ConverToHexFromFormatPKCS(self, payload, format):
+    def ConverToHexFromPayloadFormat(self, payload, format, urlEncoded):
         try:
+            # Check whether the payload is url encoded. If yes, url decode the payload 
+            if (urlEncoded):
+                payload = self._helpers.urlDecode(payload)
+
             # default format is hex
             if format=="Base64":
                 # check whether the payload is base64                    
@@ -1378,7 +1373,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
             return payload
         except Exception as e:                
             JOptionPane.showMessageDialog(self._jPaddingOracleTab, e, "Exception", JOptionPane.ERROR_MESSAGE)
-            return None
+            return None    
 
 
     def registerExtenderCallbacks(self, callbacks):
