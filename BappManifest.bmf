@@ -1,0 +1,13 @@
+Uuid: 0efabfee59404068a8c4071fa18a2e00
+ExtensionType: 2
+Name: Padding Oracle Hunter
+RepoName: padding-oracle-hunter
+ScreenVersion: 1.0
+SerialVersion: 1
+MinPlatformVersion: 0
+ProOnly: False
+Author: GovTech-CSG
+ShortDescription: Helps penetration testers quickly identify and exploit the PKCS#7 and PKCS#1 v1.5 padding oracle vulnerability.
+EntryPoint: padding_oracle_hunter.py
+BuildCommand: 
+SupportedProducts: Pro, Community
