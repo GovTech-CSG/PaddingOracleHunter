@@ -3,7 +3,7 @@ ExtensionType: 2
 Name: Padding Oracle Hunter
 RepoName: padding-oracle-hunter
 ScreenVersion: 1.0
-SerialVersion: 1
+SerialVersion: 4
 MinPlatformVersion: 0
 ProOnly: False
 Author: GovTech-CSG
