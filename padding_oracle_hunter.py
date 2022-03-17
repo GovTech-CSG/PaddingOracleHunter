@@ -29,14 +29,16 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
     gPlaintextPKCS7 = ""
     gBlockSizePKCS7 = ""
     gThreadPKCS7 = ""
-    gInvalidPadMsgPKCS7 = ""
+    gPadMsgPKCS7 = ""
+    gPadMsgSelPKCS7 = ""
+    
 
 
     def DisplayOutput_PKCS7(self, text):
         self.__jTextAreaOutputPKCS7.append(text)
 
     
-    def Worker_PKCS7(self, payloadLen, blockLen, current_block, encrypted_payload, mod_byte, numOfPad, invalidPadMsg, start_byte, end_byte, mode, q):
+    def Worker_PKCS7(self, payloadLen, blockLen, current_block, encrypted_payload, mod_byte, numOfPad, PadMsg, start_byte, end_byte, mode, q):
         
         for byteValue in range(start_byte,end_byte):
             # Exit the operation if stop button was clicked
@@ -65,11 +67,18 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
                     # send the web request            
                     result = self.ServiceRequest_PKCS7(encrypted_payload.replace(current_block,mod_block))
 
-                # check for padding success message and correct response message        
-                if (hexlify(invalidPadMsg.encode()) not in hexlify(result)):                    
-                    decb4xor = byteValue ^ numOfPad                    
-                    q.put(decb4xor)            
-                    return
+                # if the message is an invalid padding message
+                if self.gPadMsgSelPKCS7=="Invalid":
+                    if (hexlify(PadMsg.encode()) not in hexlify(result)):                    
+                        decb4xor = byteValue ^ numOfPad                    
+                        q.put(decb4xor)            
+                        return
+                # if the message is a valid padding message
+                else:
+                    if (hexlify(PadMsg.encode()) in hexlify(result)):                    
+                        decb4xor = byteValue ^ numOfPad                    
+                        q.put(decb4xor)            
+                        return
 
                 # return if the correct padding is already found
                 if(not q.empty()):            
@@ -266,7 +275,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
                 for k in range(0,numberOfThread):
                     start_byte_range = k * byte_range
                     end_byte_range = (k+1) * byte_range
-                    x = threading.Thread(target=self.Worker_PKCS7, args=(payloadLen, blockLen, current_block, encrypted_payload, mod_byte, numOfPad, self.gInvalidPadMsgPKCS7, start_byte_range, end_byte_range, "enc", q))
+                    x = threading.Thread(target=self.Worker_PKCS7, args=(payloadLen, blockLen, current_block, encrypted_payload, mod_byte, numOfPad, self.gPadMsgPKCS7, start_byte_range, end_byte_range, "enc", q))
                     threads.append(x)
                     x.start()
                 
@@ -274,7 +283,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
                 if(byte_remain != 0):
                     start_byte_range = (k+1) * byte_range
                     end_byte_range = ((k+1) * byte_range) + byte_remain
-                    x = threading.Thread(target=self.Worker_PKCS7, args=(payloadLen, blockLen, current_block, encrypted_payload, mod_byte, numOfPad, self.gInvalidPadMsgPKCS7, start_byte_range, end_byte_range, "enc", q))
+                    x = threading.Thread(target=self.Worker_PKCS7, args=(payloadLen, blockLen, current_block, encrypted_payload, mod_byte, numOfPad, self.gPadMsgPKCS7, start_byte_range, end_byte_range, "enc", q))
                     threads.append(x)
                     x.start()
 
@@ -369,7 +378,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
                 for k in range(0,numberOfThread):
                     start_byte_range = k * byte_range
                     end_byte_range = (k+1) * byte_range
-                    x = threading.Thread(target=self.Worker_PKCS7, args=(payloadLen, blockLen, current_block, encrypted_payload, mod_byte, numOfPad, self.gInvalidPadMsgPKCS7, start_byte_range, end_byte_range, "dec", q))
+                    x = threading.Thread(target=self.Worker_PKCS7, args=(payloadLen, blockLen, current_block, encrypted_payload, mod_byte, numOfPad, self.gPadMsgPKCS7, start_byte_range, end_byte_range, "dec", q))
                     threads.append(x)
                     x.start()
                 
@@ -377,7 +386,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
                 if(byte_remain != 0):
                     start_byte_range = (k+1) * byte_range
                     end_byte_range = ((k+1) * byte_range) + byte_remain
-                    x = threading.Thread(target=self.Worker_PKCS7, args=(payloadLen, blockLen, current_block, encrypted_payload, mod_byte, numOfPad, self.gInvalidPadMsgPKCS7, start_byte_range, end_byte_range, "dec", q))
+                    x = threading.Thread(target=self.Worker_PKCS7, args=(payloadLen, blockLen, current_block, encrypted_payload, mod_byte, numOfPad, self.gPadMsgPKCS7, start_byte_range, end_byte_range, "dec", q))
                     threads.append(x)
                     x.start()
 
@@ -467,12 +476,13 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
 
             # Only used in the encryption or decryption operations
             if mode!="test":
-                # Get invalid padding message
-                invalidPadMsg = self.__textInvalidPadMessagePKCS7.getText()
-                if invalidPadMsg=="":
-                    JOptionPane.showMessageDialog(self._jPaddingOracleTab, "Please provide part or full of the invalid padding response!", "Error", JOptionPane.ERROR_MESSAGE)
+                # Get valid or invalid padding message
+                self.gPadMsgSelPKCS7 = self.__jComboBoxPadMsgPKCS7.getSelectedItem()
+                PadMsg = self.__textPadMessagePKCS7.getText()
+                if PadMsg=="":
+                    JOptionPane.showMessageDialog(self._jPaddingOracleTab, "Please provide part or full of the valid or invalid padding response!", "Error", JOptionPane.ERROR_MESSAGE)
                     return False
-                self.gInvalidPadMsgPKCS7 = invalidPadMsg
+                self.gPadMsgPKCS7 = PadMsg
 
             return True                
         except Exception as e:
@@ -501,9 +511,11 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
         self.__textBlockSizePKCS7 = JTextField("16")
         self.__textBlockSizePKCS7.setToolTipText("block size (byte)")        
 
-        self.__jLabelInvalidPadMessagePKCS7 = JLabel("Invalid Padding Response:")        
-        self.__textInvalidPadMessagePKCS7 = JTextField()        
-        self.__textInvalidPadMessagePKCS7.setToolTipText("part or full of the invalid padding response, only used in the encryption and decryption operations")
+        self.__jLabelPadMessagePKCS7 = JLabel("Padding Response:")        
+        self.__textPadMessagePKCS7 = JTextField()        
+        self.__textPadMessagePKCS7.setToolTipText("part or full of the valid or invalid padding response, only used in the encryption and decryption operations")
+        self.__jComboBoxPadMsgPKCS7 = JComboBox(['Invalid', 'Valid'])
+        self.__jComboBoxPadMsgPKCS7.setSelectedIndex(0)
 
         self.__jButtonClearPayloadPKCS7 = JButton("Clear Selection",actionPerformed=self.clearPayload_PKCS7)
         self.__jButtonSelPayloadPKCS7 = JButton("Select Payload",actionPerformed=self.selectPayload_PKCS7)
@@ -511,6 +523,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
         self.__jLabelFormatPKCS7 = JLabel("Format:")
         self.__jComboBoxFormatPKCS7 = JComboBox(['Hex', 'Base64', 'Decimal'])
         self.__jComboBoxFormatPKCS7.setSelectedIndex(0)
+        
 
         self.__jCheckBoxUrlEncodedPKCS7=JCheckBox("Url Encoded")        
         
@@ -554,14 +567,16 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
                           jPanelLayoutPKCS7.createParallelGroup()
                           .addComponent(self.__jLabelThreadPKCS7)
                           .addComponent(self.__jLabelBlockSizePKCS7)                
-                          .addComponent(self.__jLabelInvalidPadMessagePKCS7)
+                          .addComponent(self.__jLabelPadMessagePKCS7)
                           .addComponent(self.__jLabelPlaintextPKCS7))
                 .addGroup( 
                           jPanelLayoutPKCS7.createParallelGroup()                                   
                           .addComponent(self.__textThreadPKCS7, GroupLayout.PREFERRED_SIZE, 112, GroupLayout.PREFERRED_SIZE)
                           .addComponent(self.__textBlockSizePKCS7, GroupLayout.PREFERRED_SIZE, 112, GroupLayout.PREFERRED_SIZE)
-                          .addComponent(self.__textInvalidPadMessagePKCS7, GroupLayout.PREFERRED_SIZE, 940, GroupLayout.PREFERRED_SIZE)
-                          .addComponent(self.__textPlaintextPKCS7, GroupLayout.PREFERRED_SIZE, 940, GroupLayout.PREFERRED_SIZE)))           
+                          .addComponent(self.__textPadMessagePKCS7, GroupLayout.PREFERRED_SIZE, 870, GroupLayout.PREFERRED_SIZE)                          
+                          .addComponent(self.__textPlaintextPKCS7, GroupLayout.PREFERRED_SIZE, 870, GroupLayout.PREFERRED_SIZE))
+                .addGap(20, 20, 20)  
+                .addComponent(self.__jComboBoxPadMsgPKCS7,GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))                
                 
             .addComponent(self.__jLabelOutPKCS7)
             .addComponent(self.__jScrollPaneOutPKCS7,GroupLayout.PREFERRED_SIZE, 0, 1080)            
@@ -603,8 +618,9 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
             .addGap(20, 20, 20)
             .addGroup(
                 jPanelLayoutPKCS7.createParallelGroup()
-                .addComponent(self.__jLabelInvalidPadMessagePKCS7)
-                .addComponent(self.__textInvalidPadMessagePKCS7, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                .addComponent(self.__jLabelPadMessagePKCS7)
+                .addComponent(self.__textPadMessagePKCS7, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                .addComponent(self.__jComboBoxPadMsgPKCS7, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
             .addGap(20, 20, 20)
             .addGroup(
                 jPanelLayoutPKCS7.createParallelGroup()
@@ -740,7 +756,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
         self.__jEditorPaneReqPKCS7.setText(self.gHttpRequestRawStringPKCS7)
 
         # Reset all the fields        
-        self.__textInvalidPadMessagePKCS7.setText("")
+        self.__textPadMessagePKCS7.setText("")
         self.__textPlaintextPKCS7.setText("")
         self.__jTextAreaOutputPKCS7.setText("")        
 
@@ -758,7 +774,8 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
     gSelectedPayloadPKCS15 = None
     gModulusPKCS15=0
     gExponentPKCS15=0
-    gInvalidPadMsgPKCS15 = ""
+    gPadMsgSelPKCS15 = ""
+    gPadMsgPKCS15 = ""    
     gByteLenPKCS15 = 0
     gQueriesPKCS15 = 0
     gTimePKCS15 = 0
@@ -800,9 +817,11 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
         self.__textPublicModPKCS15 = JTextField()
         self.__textPublicModPKCS15.setToolTipText("RSA public modulus in decimal")
 
-        self.__jLabelInvalidPadMessagePKCS15 = JLabel("Invalid Padding Response:")        
-        self.__textInvalidPadMessagePKCS15 = JTextField()        
-        self.__textInvalidPadMessagePKCS15.setToolTipText("part or full of the invalid padding response, only used in the decryption operation")
+        self.__jLabelPadMessagePKCS15 = JLabel("Padding Response:")        
+        self.__textPadMessagePKCS15 = JTextField()        
+        self.__textPadMessagePKCS15.setToolTipText("part or full of the valid or invalid padding response, only used in the decryption operation")
+        self.__jComboBoxPadMsgPKCS15 = JComboBox(['Invalid', 'Valid'])
+        self.__jComboBoxPadMsgPKCS15.setSelectedIndex(0)
 
         self.__jLabelUpdateIntervalPKCS15 = JLabel("Update Interval:")
         self.__jComboBoxUpdateIntervalPKCS15 = JComboBox(['100', '1000', '10000'])
@@ -842,14 +861,16 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
                           jPanelLayoutPKCS15.createParallelGroup()
                           .addComponent(self.__jLabelPublicExpPKCS15)
                           .addComponent(self.__jLabelPublicModPKCS15)                
-                          .addComponent(self.__jLabelInvalidPadMessagePKCS15)
+                          .addComponent(self.__jLabelPadMessagePKCS15)
                           .addComponent(self.__jLabelUpdateIntervalPKCS15))
                 .addGroup( 
                           jPanelLayoutPKCS15.createParallelGroup()                          
-                          .addComponent(self.__textPublicExpPKCS15, GroupLayout.PREFERRED_SIZE, 940, GroupLayout.PREFERRED_SIZE)
-                          .addComponent(self.__textPublicModPKCS15, GroupLayout.PREFERRED_SIZE, 940, GroupLayout.PREFERRED_SIZE)
-                          .addComponent(self.__textInvalidPadMessagePKCS15, GroupLayout.PREFERRED_SIZE, 940, GroupLayout.PREFERRED_SIZE)
-                          .addComponent(self.__jComboBoxUpdateIntervalPKCS15,GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)))
+                          .addComponent(self.__textPublicExpPKCS15, GroupLayout.PREFERRED_SIZE, 870, GroupLayout.PREFERRED_SIZE)
+                          .addComponent(self.__textPublicModPKCS15, GroupLayout.PREFERRED_SIZE, 870, GroupLayout.PREFERRED_SIZE)
+                          .addComponent(self.__textPadMessagePKCS15, GroupLayout.PREFERRED_SIZE, 870, GroupLayout.PREFERRED_SIZE)
+                          .addComponent(self.__jComboBoxUpdateIntervalPKCS15,GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                .addGap(20, 20, 20)  
+                .addComponent(self.__jComboBoxPadMsgPKCS15,GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))                
                 
             .addComponent(self.__jLabelOutPKCS15)
             .addComponent(self.__jScrollPaneOutPKCS15,GroupLayout.PREFERRED_SIZE, 0, 1080)            
@@ -888,8 +909,9 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
             .addGap(20, 20, 20)
             .addGroup(
                 jPanelLayoutPKCS15.createParallelGroup()
-                .addComponent(self.__jLabelInvalidPadMessagePKCS15)
-                .addComponent(self.__textInvalidPadMessagePKCS15, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                .addComponent(self.__jLabelPadMessagePKCS15)
+                .addComponent(self.__textPadMessagePKCS15, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                .addComponent(self.__jComboBoxPadMsgPKCS15, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
             .addGap(20, 20, 20)
             .addGroup(
                 jPanelLayoutPKCS15.createParallelGroup()
@@ -993,14 +1015,20 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
             self.DisplayOutput_PKCS15("Query: #{}    time: {} s\n".format(self.gQueriesPKCS15, round(currentTime - self.gTimePKCS15,3)))                
 
         # send the service request    
-        response = self.ServiceRequest_PKCS15(ciphertext)        
+        response = self.ServiceRequest_PKCS15(ciphertext)                
         
-        # check the server response for invalid padding message
-        if hexlify(self.gInvalidPadMsgPKCS15.encode()) in hexlify(response):
-            return False
+        # if the message is an invalid padding message
+        if self.gPadMsgSelPKCS15=="Invalid":
+            if hexlify(self.gPadMsgPKCS15.encode()) in hexlify(response):
+                return False
+            else:
+                return True
+        # if the message is a valid padding message
         else:
-            return True        
-        
+            if hexlify(self.gPadMsgPKCS15.encode()) not in hexlify(response):
+                return False
+            else:
+                return True        
 
     # Step 2.A.
     def FindSmallest_PKCS15(self,lower_bound, c):
@@ -1204,13 +1232,14 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
             # Compute the ByteLength
             self.gByteLenPKCS15 = self.gModulusPKCS15.bit_length()//8
 
-            # Get invalid padding message
+            # Get valid or invalid padding message
             if mode=="decrypt":
-                invalidpadmsg = self.__textInvalidPadMessagePKCS15.getText()
-                if invalidpadmsg=="":
-                    JOptionPane.showMessageDialog(self._jPaddingOracleTab, "Please provide part or full of the invalid padding response!", "Error", JOptionPane.ERROR_MESSAGE)
+                self.gPadMsgSelPKCS15 = self.__jComboBoxPadMsgPKCS15.getSelectedItem()
+                padmsg = self.__textPadMessagePKCS15.getText()
+                if padmsg=="":
+                    JOptionPane.showMessageDialog(self._jPaddingOracleTab, "Please provide part or full of the valid or invalid padding response!", "Error", JOptionPane.ERROR_MESSAGE)
                     return False                
-                self.gInvalidPadMsgPKCS15 = invalidpadmsg
+                self.gPadMsgPKCS15 = padmsg
             
             return True
 
@@ -1246,7 +1275,7 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
          # Reset all the fields
         self.__textPublicExpPKCS15.setText("")
         self.__textPublicModPKCS15.setText("")
-        self.__textInvalidPadMessagePKCS15.setText("")        
+        self.__textPadMessagePKCS15.setText("")        
         self.__jTextAreaOutputPKCS15.setText("")
         self.__jComboBoxUpdateIntervalPKCS15.setSelectedIndex(0)
 
@@ -1426,4 +1455,4 @@ class BurpExtender(IBurpExtender, IContextMenuFactory, ITab, IExtensionStateList
 
 
     def printInfo(self):
-        print('Padding Oracle Hunter v1.0.1\nCreated by: GovTech (Tan Inn Fung)')
+        print('Padding Oracle Hunter v1.1\nCreated by: GovTech (Tan Inn Fung)')

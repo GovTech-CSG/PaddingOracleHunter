@@ -12,10 +12,10 @@ The following GUI can be used to identify and perform the padding oracle attack 
 	 
 The components of the GUI (above) are as follows:
 1. Http request window.
-2. Panel to select the payload and its format. To achieve full decryption, the payload is expected to be IV || ciphertext.
+2. Panel to select the payload and its format. To achieve full decryption, the payload is expected to be in the format of IV || ciphertext.
 3. The number of threads used to perform the attack. With more threads, the computation is expected to be faster.
 4. The block size of the encryption protocol.
-5. The response from the server (partial or full) due to invalid padding. Only used in the encryption and decryption operations.
+5. The unique response from the server (partial or full) due to valid or invalid padding. Only used in the encryption and decryption operations.
 6. The plaintext which will be used to compute the ciphertext. Only used in the encryption operation.
 7. Output window.
 8. Test function to verify whether the server is vulnerable to PKCS#7 padding oracle attack.
@@ -32,8 +32,8 @@ The components of the GUI (above) are as follows:
 2. Panel to select the payload and its format.
 3. The RSA public exponent.
 4. The RSA public modulus.
-5. The response from the server (partial or full) due to invalid padding. Only used in the decryption operation.
-6. Interval to display the test and decryption results.
+5. The unique response from the server (partial or full) due to valid or invalid padding. Only used in the decryption operation.
+6. Interval to display the decryption results.
 7. Output window.
 8. Test function to verify whether the server is vulnerable to PKCS#1 v1.5 padding oracle attack.
 9. Decrypt function to recover the plaintext from the encrypted payload.
@@ -69,8 +69,9 @@ The components of the GUI (above) are as follows:
 4. Click the **Test** button, and it will provide a summary indicating the server is vulnerable to padding oracle attack.
 ![picture](./images/PKCS7_Test.PNG)
 
-5. Copy either part/full of the **Invalid Padding** response from the **Output** window and put it in the **Invalid Padding Response** textbox, click the **Decrypt** button to recover the plaintext.
-![picture](./images/PKCS7_Decrypt.PNG)
+5. Copy either part/full of the padding response from the **Output** window and put it in the **Padding Response** textbox. You can choose to use either the valid or invalid padding response. Click the **Decrypt** button to recover the plaintext.
+![picture](./images/PKCS7_Decrypt_Invalid.PNG)
+![picture](./images/PKCS7_Decrypt_Valid.PNG)
 
 6. In order to escalate the privilege to admin, we will need to modify the plaintext to **{"userid":"100","isAdmin":"True"}** and convert it to a hexadecimal value.
 ![picture](./images/PKCS7_ConvertPlaintextToHex.PNG)
@@ -95,11 +96,11 @@ The components of the GUI (above) are as follows:
 5. Click the **Test** button, and it will provide a summary indicating the server is vulnerable to padding oracle attack.
 ![picture](./images/PKCS1.5_Test.PNG)
 
-6. Copy either part/full of the **Invalid Padding** response from the **Output** window and put it in the **Invalid Padding Response** textbox. Click the **Decrypt** button, and the plaintext will be recovered at about 50k requests.
-![picture](./images/PKCS1.5_Decrypt.PNG)
+6. Copy either part/full of the padding response from the **Output** window and put it in the **Padding Response** textbox. You can choose to use either the valid or invalid padding response. Click the **Decrypt** button, and the plaintext will be recovered at about 50k requests.
+![picture](./images/PKCS1.5_Decrypt_Invalid.PNG)
+![picture](./images/PKCS1.5_Decrypt_Valid.PNG)
 
 # Contributing #
-
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/govtech-csg/PaddingOracleHunter/issues)
 
  * If you find bugs, kindly log us an [issue ticket](https://github.com/govtech-csg/PaddingOracleHunter/issues) to report them. Do ensure that the bug has not already been reported by searching on GitHub under Issues.
